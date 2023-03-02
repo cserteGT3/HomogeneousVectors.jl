@@ -1,58 +1,47 @@
 module HomogeneousVectors
 
-# v1
-#import Base: size, getindex, setindex!, IndexStyle, iterate, length
-#using LinearAlgebra: I
-# v2
-#import Base: *
-# v3 and v4
 using StaticArrays
+using LinearAlgebra: I, mul!
+import Base: *
 
-#=
-export  HV1, HM1
-
-export  HM2, homtr
-
-export  HV3, HM3
-
-export  HV4, HM4
-
-include("version1.jl")
-include("version2.jl")
-include("version3.jl")
-include("version4.jl")
-=#
 
 export  HomogeneousVector,
-        HomogeneousMatrix,
-        invhm,
-        transform3D
+        StaticHomogeneousMatrix,
+        MutableHomogeneousMatrix,
+        HV,
+        SHM,
+        MHM
 
-function HomogeneousVector(v)
-    return SVector{4}(v..., 1)
-end
+        struct HomogeneousVector{T<:AbstractArray}
+            v::T
+            # add length check in inner constructor
+        end
 
-function HomogeneousMatrix(m, v::AbstractVector)
-    hm = hcat(m, v)
-    hm = vcat(hm, [0 0 0 1])
-    return SMatrix{4,4}(hm)
-end
+        # HomogeneousMatrix is an alias for 4x4 matrix
+        const StaticHomogeneousMatrix{T} = SMatrix{4,4,T,16}
+        const MutableHomogeneousMatrix{T} = MMatrix{4,4,T,16}
 
-HomogeneousMatrix(v::AbstractVector) = HomogeneousMatrix(I, v)
+        # short names for convinience
+        const HV = HomogeneousVector
+        const SHM{T} = StaticHomogeneousMatrix{T}
+        const MHM{T} = MutableHomogeneousMatrix{T}
 
-function invhm(m)
-    invtr = zeros(Float64,4,4)
-    R = m[1:3, 1:3]
-    invR = inv(R)
-    invtr[1:3, 1:3] = invR
-    invtr[1:3, 4] = -1*invR*m[1:3,4]
-    return SMatrix{4,4}(invtr)
-end
+        const HM = Union{StaticHomogeneousMatrix,MutableHomogeneousMatrix}
 
-function transform3D(m, v)
-    @assert length(v) == 3 "transform3D transform 3D, not homogeneous vectors"
-    result = m*HomogeneousVector(v)
-    return result[1:3]
-end
+        # convinience constructors for homogeneous matrices
+        function StaticHomogeneousMatrix(rotationmatrix, translationvector)
+            StaticHomogeneousMatrix(vcat(hcat(rotationmatrix, translationvector), [0 0 0 1]))
+        end
 
+        function MutableHomogeneousMatrix(rotationmatrix, translationvector)
+            MutableHomogeneousMatrix(vcat(hcat(rotationmatrix, translationvector), [0 0 0 1]))
+        end
+
+        function Base.:*(v::HomogeneousVector{T}, m::HM) where {T}
+            rotmat = @view m[1:3, 1:3]
+            translation = @view m[1:3, 4]
+            result = MVector{3, eltype(translation)}(translation)
+            mul!(result, rotmat, v.v, 1, 1)
+            return T(result)
+        end
 end
