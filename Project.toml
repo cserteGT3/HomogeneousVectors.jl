@@ -1,7 +1,7 @@
 name = "HomogeneousVectors"
 uuid = "5d3f8266-9186-4afd-be5f-84c55396a2a7"
 authors = ["Tamás Cserteg <csertegt@gmail.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
